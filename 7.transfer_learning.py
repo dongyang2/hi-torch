@@ -53,10 +53,37 @@ def train(model, criterion, optimizer, schedule, num_epoch=25):
 
                 with torch.set_grad_enabled(phase == 'train'):
                     output = model(data)
+                    _, pre = torch.max(output, 1)
+                    loss = criterion(pre, label)
+
+                    if phase == 'train':
+                        loss.backward()
+                        optimizer.step()
+
+                running_loss += loss.item() * data.size(0)
+                running_correct += torch.sum(pre == label.data)
+
+            epoch_loss = running_loss/dataset_size[phase]
+            epoch_score = running_correct.double()/dataset_size[phase]
+
+            print('{} loss : {:.4f}    score : {:.4f}'.format(phase, epoch_loss, epoch_score))
+
+            if phase == 'val' and epoch_score > best_score:
+                best_score = epoch_score
+                best_model_wts = copy.deepcopy(model.state_dict())
+
+        print()
+
+    time_elapse = time.time() - since
+    print('Training complete in {:.0f}m {:.0f}s'.format(time_elapse//60, time_elapse % 60))
+    print('Best val Score: {:.4f} '.format(best_score))
+
+    model.load(best_model_wts)
+    return model
 
 
-
-
+def visualize_model():
+    pass
 
 
 if __name__ == '__main__':
@@ -97,4 +124,4 @@ if __name__ == '__main__':
     show_pic(out, [class_names[x] for x in train_label])
 
     # 训练！
-
+    # train()
