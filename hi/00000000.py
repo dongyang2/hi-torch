@@ -22,3 +22,5 @@ print(class_total)
 a = torch.tensor([0, 0, 1, 0], dtype=torch.uint8)
 print(a[2])
 
+
+
