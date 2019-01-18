@@ -105,7 +105,7 @@ if __name__ == '__main__':
     #         total += test_label.size(0)
     #         correct += (predict == test_label).sum().item()
     #
-    # print('Precision ', 100.0*correct/total)
+    # print('acc ', 100.0*correct/total)
 
     # 查看在哪些类上的预测效果不好
     class_correct = list(0. for i in range(10))
@@ -132,6 +132,6 @@ if __name__ == '__main__':
             # break
 
     for i in range(10):
-        print('Precision of %5s : %2d %%' % (classes[i], 100 * class_correct[i] / class_total[i]))
+        print('acc of %5s : %2d %%' % (classes[i], 100 * class_correct[i] / class_total[i]))
 
     print('\n ---------end---------', time.ctime())
