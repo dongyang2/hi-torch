@@ -124,7 +124,7 @@ if __name__ == '__main__':
             # c = (predict == test_label).squeeze()  # 把数组中 为1的维度 去掉。哈？还是不懂
             c = (predict == test_label)
             # print(c)
-            # for i in range(4):  # 这里为什么要循环个4次,因为dataLoader函数的batchSize=4,所以应该写成下面这行的样子
+            # for i in range(4):  # 这里为什么要循环个4次,因为dataLoader函数的batchSize=4。写成下面这行的样子应该更好理解
             for i in range(batch_size):
                 lab = test_label[i]
                 class_correct[lab] += c[i].item()

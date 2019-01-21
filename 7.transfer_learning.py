@@ -1,4 +1,5 @@
 # 第七节，迁移学习
+# "https://download.pytorch.org/models/resnet18-5c106cde.pth" 这个权重文件提前下好放在data文件夹里
 # Author: Sasank Chilamkurthy
 # Duplicator: Dy_gs
 
@@ -39,7 +40,7 @@ def train(model, criterion, optimizer, schedule, num_epoch=25):
         print('-'*10)
         for phase in tmp_li:
             if phase == 'train':
-                schedule.step()  # schedule是什么
+                schedule.step()  # schedule是什么，下面有解释
                 model.train()
             else:
                 model.eval()
@@ -54,7 +55,8 @@ def train(model, criterion, optimizer, schedule, num_epoch=25):
                 with torch.set_grad_enabled(phase == 'train'):
                     output = model(data)
                     _, pre = torch.max(output, 1)
-                    loss = criterion(pre, label)
+                    # print(pre.shape, label.shape)
+                    loss = criterion(output, label)  # 这里为什么不是pre而是output？
 
                     if phase == 'train':
                         loss.backward()
@@ -82,8 +84,30 @@ def train(model, criterion, optimizer, schedule, num_epoch=25):
     return model
 
 
-def visualize_model():
-    pass
+def visualize_model(model, num_images=6):
+    # to display some predictions
+    was_training = model.traning
+    model.eval()
+    image_so_far = 0
+    plt.figure()
+
+    with torch.no_grad():
+        for i, (inpu, label) in enumerate(data_loader['val']):
+            inpu = inpu.to(device)
+            output = model(inpu)
+            _, pre = torch.max(output, 1)
+
+            for j in range(inpu.size()[0]):
+                image_so_far += 1
+                sub_p = plt.subplot(num_images//2, 2, image_so_far)
+                plt.axis('off')
+                sub_p.set_titile('predict : {}'.format(class_names[pre[j]]))
+                show_pic(inpu.cpu().data[j])  # 这里突然冒出的data属性，让我惊慌
+
+                if image_so_far == num_images:
+                    model.tarin(mode=was_training)
+                    return
+        model.tran(mode=was_training)
 
 
 if __name__ == '__main__':
@@ -118,10 +142,31 @@ if __name__ == '__main__':
     device = torch.device('cpu')
     # device = torch.device('cuda:0')  # 使用GPU
 
-    # 展示一小批的图片
-    train_data, train_label = next(iter(data_loader[tmp_li[0]]))
-    out = torchvision.utils.make_grid(train_data)  # 做成几个小格子以便plt.imshow
-    show_pic(out, [class_names[x] for x in train_label])
+    # # 展示一小批的图片
+    # train_data, train_label = next(iter(data_loader[tmp_li[0]]))
+    # out = torchvision.utils.make_grid(train_data)  # 做成几个小格子以便plt.imshow
+    # show_pic(out, [class_names[x] for x in train_label])
 
-    # 训练！
-    # train()
+    # 微调！
+    weight_path = './data/resnet18-5c106cde.pth'
+    model_ft = models.resnet18()
+    model_ft.load_state_dict(torch.load(weight_path))
+    # # 以下这两行会阻止所有层的后向传播，但接下来更改的最后一层是可以被后向传播的。
+    # # 因为初始的requires_grad=True。所以取消下面两行注释后，最后一层的参数会随着训练更新。
+    # for param in model_ft.parameters():
+    #     param.requires_grad = False
+    # 把最后的全连接层改一哈
+    num_feature = model_ft.fc.in_features
+    model_ft.fc = nn.Linear(num_feature, 2)
+    model_ft = model_ft.to(device)
+    cri = nn.CrossEntropyLoss()
+    optimizer_ft = opt.SGD(model_ft.parameters(), lr=0.001, momentum=0.9)
+    # Decay LR by a factor of 0.1 every 7 epochs，原来schedule是干这个的
+    exp_lr_schedule = lr_scheduler.StepLR(optimizer_ft, step_size=7, gamma=0.1)
+
+    model_ft = train(model_ft, cri, optimizer_ft, exp_lr_schedule)
+
+    visualize_model(model_ft)
+    plt.ioff()
+
+    print('\n-------start transfer learning--------', time.ctime())

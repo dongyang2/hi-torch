@@ -12,3 +12,9 @@ cudnn-9.0-windows10-x64-v7.2.1.38
 
 ## Python requirement
 torch==1.0.0
+
+torchvision
+
+numpy
+
+matplotlib
