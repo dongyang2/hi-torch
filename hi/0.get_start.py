@@ -50,7 +50,8 @@ i = torch.randn(1)
 # print(i)
 # print(i.item())  # item()方法可以让tensor中唯一的那个数取出来当一个Python类型的数字，如果tensor中包含超过一个数会报错
 
-# print(type(h.numpy()), type(h))  # pytorch允许所有tensor使用numpy()方法转为numpy类型
+'''# pytorch允许所有tensor使用numpy()方法转为numpy类型'''
+# print(type(h.numpy()), type(h))
 
 # let us run this cell only if CUDA is available
 # We will use ``torch.device`` objects to move tensors in and out of GPU
