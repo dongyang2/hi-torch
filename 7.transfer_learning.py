@@ -112,7 +112,7 @@ def visualize_model(model, num_images=6):
 
 if __name__ == '__main__':
     plt.ion()  # 交互模式，开启！
-    print('-------start transfer learning--------', time.ctime(), '\n')
+    print('-'*16, 'Start transfer learning.', time.ctime(), '-'*16, '\n')
 
     data_tran = {
         'train': transforms.Compose([  # 这里将好几个图片预处理操作组合起来
@@ -151,10 +151,12 @@ if __name__ == '__main__':
     weight_path = './data/resnet18-5c106cde.pth'
     model_ft = models.resnet18()
     model_ft.load_state_dict(torch.load(weight_path))
+    # print(time.ctime())
     # # 以下这两行会阻止所有层的后向传播，但接下来更改的最后一层是可以被后向传播的。
     # # 因为初始的requires_grad=True。所以取消下面两行注释后，最后一层的参数会随着训练更新。
     # for param in model_ft.parameters():
     #     param.requires_grad = False
+
     # 把最后的全连接层改一哈
     num_feature = model_ft.fc.in_features
     model_ft.fc = nn.Linear(num_feature, 2)
@@ -169,4 +171,4 @@ if __name__ == '__main__':
     visualize_model(model_ft)
     plt.ioff()
 
-    print('\n-------start transfer learning--------', time.ctime())
+    print('\n', '-'*16, 'End transfer learning', time.ctime(), '-'*16)
