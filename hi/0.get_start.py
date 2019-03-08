@@ -52,6 +52,8 @@ i = torch.randn(1)
 
 '''# pytorch允许所有tensor使用numpy()方法转为numpy类型'''
 # print(type(h.numpy()), type(h))
+'''但是最常见的用法是下面这句'''
+print(h.cpu().detach().numpy())
 
 # let us run this cell only if CUDA is available
 # We will use ``torch.device`` objects to move tensors in and out of GPU

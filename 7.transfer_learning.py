@@ -112,7 +112,7 @@ def visualize_model(model, num_images=6):
 
 if __name__ == '__main__':
     plt.ion()  # 交互模式，开启！
-    print('-'*16, 'Start transfer learning.', time.ctime(), '-'*16, '\n')
+    print('-'*15, 'Start', time.ctime(), '-'*15, '\n')
 
     data_tran = {
         'train': transforms.Compose([  # 这里将好几个图片预处理操作组合起来
@@ -171,4 +171,4 @@ if __name__ == '__main__':
     visualize_model(model_ft)
     plt.ioff()
 
-    print('\n', '-'*16, 'End transfer learning', time.ctime(), '-'*16)
+    print('%s%s %s %s %s' % ('\n', '-'*16, 'End', time.ctime(), '-'*16))
