@@ -67,10 +67,10 @@ if __name__ == '__main__':
             # train_data, train_label = train_data.to(device), train_label.to(device)
 
             optimizer.zero_grad()
-            output = net(train_data)
-            loss = criterion(output, train_label)
-            loss.backward()
-            optimizer.step()
+            output = net(train_data)                # 一、得输出
+            loss = criterion(output, train_label)   # 二、算损失
+            loss.backward()                         # 三、后向传播（在这步之前要清梯度）
+            optimizer.step()                        # 四、更新权重
 
             running_loss += loss.item()
             if i % 2000 == 1999:
