@@ -1,14 +1,26 @@
 # 第零节，开始
 import torch
 
-x = torch.empty(5, 3)
-# print(x)
+x = torch.empty(5, 3)  # 得到形状是(5,3)的未初始化的张量，但我的输出不是全零
+# print('x', x)
 
-y = torch.rand(5, 3)
-# print(y)
+y = torch.rand(5, 3)  # 得到形状是(5,3)的充满随机数的张量
+# print('y', y)
 
-z = torch.zeros(5, 3, dtype=torch.long)
-# print(z)
+ca1 = torch.cat((x, y), dim=0)
+print('ca1', ca1.size())  # (10,3)
+
+ca2 = torch.cat((x, y), dim=1)
+print('ca2', ca2.size())  # (5,6)
+
+j = torch.rand(3)
+k = torch.rand(3)
+ca3 = torch.cat((j, k), dim=0)  # 横着拼接两个张量
+# ca4 = torch.cat((j, k), dim=1)  # Dimension out of range (expected to be in range of [-1, 0], but got 1)
+print('ca3', ca3.size())  # (6)
+
+z = torch.zeros(5, 3, dtype=torch.long)  # 得到形状是(5,3)的充满零的张量
+# print('z', z)
 
 a = torch.tensor([5.5, 3])
 # print(a)
@@ -64,3 +76,10 @@ if torch.cuda.is_available():
     z = x + y
     print(z)
     print(z.to("cpu", torch.double))       # ``.to`` can also change dtype together!
+
+m = torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+print(m.narrow(0, 0, 1))  # narrow(dim,start,len) dim决定了是按行选还是按列选，0=行 1=列。
+print(m.narrow(0, 0, 2))  # start是开始的角标，len是角标往后推的长度
+print(m.narrow(0, 1, 2))
+print(m.narrow(1, 0, 2))
+print(m.narrow(1, 1, 2))
