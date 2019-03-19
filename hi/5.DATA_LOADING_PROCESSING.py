@@ -39,10 +39,10 @@ class FaceLandmarkDataset(Dataset):
         self.root_dir = root_dir
         self.transform = trans
 
-    def __len__(self):
+    def __len__(self):  # 返回数据集的长度
         return len(self.landmarks_frame)
 
-    def __getitem__(self, item):
+    def __getitem__(self, item):  # 这个函数应该可以遍历数据集图片，真神奇，应该和__len__有关
         image_name = os.path.join(self.root_dir, self.landmarks_frame.iloc[item, 0])
         image = io.imread(image_name)
         landmark = self.landmarks_frame.iloc[item, 1:].as_matrix()
@@ -155,7 +155,7 @@ if __name__ == '__main__':
     landmark_path = '../data/faces/face_landmarks.csv'
     dataset_path = '../data/faces/'
 
-    face_dataset = FaceLandmarkDataset(landmark_path, dataset_path)
+    face_dataset = FaceLandmarkDataset(landmark_path, dataset_path)  # 这时已经把数据集都加载好了放到face_dataset变量里
 
     fig = plt.figure()
 
@@ -202,6 +202,7 @@ if __name__ == '__main__':
         if i == 3:
             break
 
+    # 使用pytorch的DataLoader函数可以迭代地加载一批批的图片
     data_loader = DataLoader(transformed_data, batch_size=4, shuffle=True, num_workers=4)
     for i, batch_sample in enumerate(data_loader):
         print(i, batch_sample['image'].shape, batch_sample['landmarks'].shape)

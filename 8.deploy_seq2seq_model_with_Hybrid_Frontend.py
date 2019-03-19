@@ -65,7 +65,7 @@ if __name__ == '__main__':
     import re
     import unicodedata
     import numpy as np
-    os.environ['CUDA_VISIBLE_DEVICES'] = 7
+    os.environ['CUDA_VISIBLE_DEVICES'] = '7'
     print('-'*15, 'Start', time.ctime(), '-'*15, '\n')
 
     device = torch.device("cpu")
