@@ -1,6 +1,9 @@
 # 第八节
+import torch.nn as nn
+
+
 class Voc:
-    def __init__(self, name):
+    def __init__(self, name):  # 这里的init里没有super，是不是因为这个类是我们自创的不是继承的所以不用写
         self.name = name
         self.trimmed = False
         self.word2index = {}
@@ -56,11 +59,31 @@ def index_from_sentence(voc, sentence):
     return [voc.word2index[word] for word in sentence.split(' ')]+[EOS_token]
 
 
+class EncoderRNN(nn.Module):
+    def __init__(self, hidden_size, embedding, n_layer=1, dropout=0):
+        super(EncoderRNN, self).__init__()
+        self.n_layer = n_layer
+        self.hidden_size = hidden_size
+        self.embedding = embedding
+        # Initialize GRU; the input_size and hidden_size params are both set to 'hidden_size'
+        #   because our input size is a word embedding with number of features == hidden_size
+        self.gru = nn.GRU(hidden_size, hidden_size, n_layer, dropout=(0 if n_layer == 1 else dropout),
+                          bidirectional=True)
+
+    def forward(self, input_seq, input_length, hidden=None):
+        embed = self.embedding(input_seq)  # Convert word indexes to embeddings
+        packed = nn.utils.rnn.pack_padded_sequence(embed, input_length)  # Pack padded batch of sequences for RNN module
+        output, hidden = self.gru(packed, hidden)  # Forward pass through GRU
+        output, _ = nn.utils.rnn.pad_packed_sequence(output)  # Unpack padding
+        output = output[:, :, :self.hidden_size]+output[:, :, self.hidden_size:]  # Sum bidirectional GRU outputs
+        # Return output and final hidden state
+        return output, hidden
+
+
 if __name__ == '__main__':
     import os
     import time
     import torch
-    import torch.nn as nn
     import torch.nn.functional as fun
     import re
     import unicodedata
