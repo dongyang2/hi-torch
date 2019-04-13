@@ -1,5 +1,7 @@
 # 第八节
+import torch
 import torch.nn as nn
+import torch.nn.functional as fun
 
 
 class Voc:
@@ -80,11 +82,51 @@ class EncoderRNN(nn.Module):
         return output, hidden
 
 
+class Attn(nn.Module):
+    """Attention layer"""
+    def __init__(self, method, hidden_size):
+        super(Attn, self).__init__()
+        self.method = method
+        if self.method not in ['dot', 'general', 'concat']:
+            raise ValueError(self.method, 'is not an appropriate attention method.')
+        self.hidden_size = hidden_size
+        if self.method == 'general':
+            self.attn = nn.Linear(self.hidden_size, self.hidden_size)
+        elif self.method == 'concat':
+            self.attn = nn.Linear(self.hidden_size*2, self.hidden_size)
+            self.v = nn.Parameter(torch.FloatTensor(self.hidden_size))
+
+    def dot_score(self, hidden, encoder_output):
+        return torch.sum(hidden*encoder_output, dim=2)
+
+    def general_score(self, hidden, encoder_output):
+        energy = self.attn(encoder_output)
+        return torch.sum(hidden*energy, dim=2)
+
+    def concat_score(self, hidden, encoder_output):
+        # 下面这个式子肯定是想逼死我
+        energy = self.attn(torch.cat((hidden.expand(encoder_output.size(0), -1, -1), encoder_output), 2)).tanh()
+        return torch.sum(self.v*energy, dim=2)
+
+    def forward(self, hidden, encoder_output):
+        # Calculate the attention weights (energies) based on the given method
+        if self.method == 'dot':
+            attn_energy = self.dot_score(hidden, encoder_output)
+        elif self.method == 'general':
+            attn_energy = self.general_score(hidden, encoder_output)
+        else:
+            attn_energy = self.concat_score(hidden, encoder_output)
+
+        # Transpose max_length and batch_size dimensions
+        attn_energy = attn_energy.t()
+
+        # Return the softmax normalized probability scores (with added dimension)
+        return fun.softmax(attn_energy, dim=1).unsqueeze(1)
+
+
 if __name__ == '__main__':
     import os
     import time
-    import torch
-    import torch.nn.functional as fun
     import re
     import unicodedata
     import numpy as np
