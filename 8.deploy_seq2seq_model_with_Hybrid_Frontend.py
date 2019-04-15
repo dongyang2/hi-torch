@@ -3,7 +3,12 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as fun
 
+MAX_LENGTH = 10  # Maximum sentence length
 
+# Default word tokens
+PAD_token = 0  # Used for padding short sentences
+SOS_token = 1  # Start-of-sentence token
+EOS_token = 2  # End-of-sentence token
 class Voc:
     def __init__(self, name):  # 这里的init里没有super，是不是因为这个类是我们自创的不是继承的所以不用写
         self.name = name
@@ -124,6 +129,88 @@ class Attn(nn.Module):
         return fun.softmax(attn_energy, dim=1).unsqueeze(1)
 
 
+class AttnDecoderRnn(nn.Module):
+
+    def __init__(self, attn_model, embedding, hidden_size, output_size, n_layer=1, dropout=0.1):
+        super(AttnDecoderRnn, self).__init__()
+        self.attn_model = attn_model
+        self.embedding = embedding
+        self.hidden_size = hidden_size
+        self.output_size = output_size
+        self.n_layer = n_layer
+        self.dropout = dropout
+
+        # 为什么要在init里面定义这几个层
+        self.embedding_dropout = nn.Dropout(dropout)
+        self.gru = nn.GRU(hidden_size, hidden_size, n_layer, dropout=(0 if n_layer==1 else dropout))
+        self.concat = nn.Linear(hidden_size*2, hidden_size)
+        self.out = nn.Linear(hidden_size, output_size)
+
+        self.attn = Attn(attn_model, hidden_size)
+
+    def forward(self, input_step, last_hidden, encoder_output):
+        # Note: we run this one step (word) at a time
+        # Get embedding of current input word
+        embed = self.embedding(input_step)
+        embed = self.embedding_dropout(embed)
+        rnn_output, hidden = self.gru(embed, last_hidden)
+        attn_weight = self.attn(rnn_output, encoder_output)
+        context = attn_weight.bmm(encoder_output.transpose(0, 1))
+
+        rnn_output = rnn_output.squeeze(0)
+        context = context.squeeze(1)
+
+        concat_input = torch.cat((rnn_output, context), 1)
+        concat_output = torch.tanh(self.concat(concat_input))
+        output = self.out(concat_output)
+        output = fun.softmax(output, dim=1)
+
+        return output, hidden
+
+
+class GreedySearchDetector(torch.jit.ScriptModule):
+
+    def __init__(self, encoder, decoder, decoder_n_layers):
+        super(GreedySearchDetector, self).__init__()
+        self.encoder = encoder
+        self.decoder = decoder
+        self._decoder_n_layers = decoder_n_layers
+        self._device = device
+        self._SOS_token = SOS_token
+
+    __constants__ = ['_device', '_SOS_token', '_decoder_n_layers']
+
+    @torch.jit.ScriptModule
+    def forward(self, input_seq: torch.Tensor, input_length: torch.Tensor, max_length: int):
+        encoder_output, encoder_hidden = self.encoder(input_seq, input_length)
+        decoder_hidden = encoder_hidden[:self._decoder_n_layers]
+        # Initialize decoder input with SOS_token
+        decoder_input = torch.ones(1, 1, device=self._device, dtype=torch.long)*self._SOS_token
+        # Initialize tensors to append decoded words to
+        all_tokens = torch.zeros([0], device=self._device, dype=torch.long)
+        all_scores = torch.zeros([0], device=self._device)
+        for _ in range(max_length):
+            decoder_output, decoder_hidden = self.decoder(decoder_input, decoder_hidden, encoder_output)
+            # Obtain most likely word token and its softmax score
+            decoder_score, decoder_input = torch.max(decoder_output, dim=1)
+            all_tokens = torch.cat((all_tokens, decoder_input), dim=0)
+            all_scores = torch.cat((all_scores, decoder_score), dim=0)
+            decoder_input = torch.unsqueeze(decoder_input, 0)
+        return all_tokens, all_scores
+
+
+def evaluate(searcher, voc, sentence, max_length=MAX_LENGTH):
+    index_batch = [index_from_sentence(voc, sentence)]
+    lengths = torch.Tensor([len(index) for index in index_batch])
+    input_batch = torch.LongTensor(index_batch).transpose(0, 1)
+    lengths = lengths.to(device)
+    input_batch = input_batch.to(device)
+
+    tokens, scores = searcher(input_batch, lengths, max_length)
+    decode_word = [voc.index2word[token.item()] for token in tokens]
+    return decode_word
+
+
 if __name__ == '__main__':
     import os
     import time
@@ -134,11 +221,5 @@ if __name__ == '__main__':
     print('-'*15, 'Start', time.ctime(), '-'*15, '\n')
 
     device = torch.device("cpu")
-    MAX_LENGTH = 10  # Maximum sentence length
-
-    # Default word tokens
-    PAD_token = 0  # Used for padding short sentences
-    SOS_token = 1  # Start-of-sentence token
-    EOS_token = 2  # End-of-sentence token
 
     print('%s%s %s %s %s' % ('\n', '-'*16, 'End', time.ctime(), '-'*16))
