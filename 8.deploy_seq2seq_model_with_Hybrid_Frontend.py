@@ -9,6 +9,8 @@ MAX_LENGTH = 10  # Maximum sentence length
 PAD_token = 0  # Used for padding short sentences
 SOS_token = 1  # Start-of-sentence token
 EOS_token = 2  # End-of-sentence token
+
+
 class Voc:
     def __init__(self, name):  # 这里的init里没有super，是不是因为这个类是我们自创的不是继承的所以不用写
         self.name = name
@@ -41,7 +43,7 @@ class Voc:
                 keep_words.append(k)
 
         print('keep_words {}/{} = {:.4f}'.format(len(keep_words), len(self.word2index),
-                                                 len(keep_words)/len(self.word2index)))
+                                                 len(keep_words) / len(self.word2index)))
 
         # reinitialize dictionaries
         self.word2index = {}
@@ -63,7 +65,7 @@ def normalize_string(s):
 def index_from_sentence(voc, sentence):
     """Takes string sentence, returns sentence of word indexes"""
     # 这里好神奇，pycharm知道我这里的voc是Voc，直接voc. 会出来很多成员变量
-    return [voc.word2index[word] for word in sentence.split(' ')]+[EOS_token]
+    return [voc.word2index[word] for word in sentence.split(' ')] + [EOS_token]
 
 
 class EncoderRNN(nn.Module):
@@ -82,13 +84,14 @@ class EncoderRNN(nn.Module):
         packed = nn.utils.rnn.pack_padded_sequence(embed, input_length)  # Pack padded batch of sequences for RNN module
         output, hidden = self.gru(packed, hidden)  # Forward pass through GRU
         output, _ = nn.utils.rnn.pad_packed_sequence(output)  # Unpack padding
-        output = output[:, :, :self.hidden_size]+output[:, :, self.hidden_size:]  # Sum bidirectional GRU outputs
+        output = output[:, :, :self.hidden_size] + output[:, :, self.hidden_size:]  # Sum bidirectional GRU outputs
         # Return output and final hidden state
         return output, hidden
 
 
 class Attn(nn.Module):
     """Attention layer"""
+
     def __init__(self, method, hidden_size):
         super(Attn, self).__init__()
         self.method = method
@@ -98,20 +101,20 @@ class Attn(nn.Module):
         if self.method == 'general':
             self.attn = nn.Linear(self.hidden_size, self.hidden_size)
         elif self.method == 'concat':
-            self.attn = nn.Linear(self.hidden_size*2, self.hidden_size)
+            self.attn = nn.Linear(self.hidden_size * 2, self.hidden_size)
             self.v = nn.Parameter(torch.FloatTensor(self.hidden_size))
 
     def dot_score(self, hidden, encoder_output):
-        return torch.sum(hidden*encoder_output, dim=2)
+        return torch.sum(hidden * encoder_output, dim=2)
 
     def general_score(self, hidden, encoder_output):
         energy = self.attn(encoder_output)
-        return torch.sum(hidden*energy, dim=2)
+        return torch.sum(hidden * energy, dim=2)
 
     def concat_score(self, hidden, encoder_output):
         # 下面这个式子肯定是想逼死我
         energy = self.attn(torch.cat((hidden.expand(encoder_output.size(0), -1, -1), encoder_output), 2)).tanh()
-        return torch.sum(self.v*energy, dim=2)
+        return torch.sum(self.v * energy, dim=2)
 
     def forward(self, hidden, encoder_output):
         # Calculate the attention weights (energies) based on the given method
@@ -142,8 +145,8 @@ class AttnDecoderRnn(nn.Module):
 
         # 为什么要在init里面定义这几个层
         self.embedding_dropout = nn.Dropout(dropout)
-        self.gru = nn.GRU(hidden_size, hidden_size, n_layer, dropout=(0 if n_layer==1 else dropout))
-        self.concat = nn.Linear(hidden_size*2, hidden_size)
+        self.gru = nn.GRU(hidden_size, hidden_size, n_layer, dropout=(0 if n_layer == 1 else dropout))
+        self.concat = nn.Linear(hidden_size * 2, hidden_size)
         self.out = nn.Linear(hidden_size, output_size)
 
         self.attn = Attn(attn_model, hidden_size)
@@ -185,7 +188,7 @@ class GreedySearchDetector(torch.jit.ScriptModule):
         encoder_output, encoder_hidden = self.encoder(input_seq, input_length)
         decoder_hidden = encoder_hidden[:self._decoder_n_layers]
         # Initialize decoder input with SOS_token
-        decoder_input = torch.ones(1, 1, device=self._device, dtype=torch.long)*self._SOS_token
+        decoder_input = torch.ones(1, 1, device=self._device, dtype=torch.long) * self._SOS_token
         # Initialize tensors to append decoded words to
         all_tokens = torch.zeros([0], device=self._device, dype=torch.long)
         all_scores = torch.zeros([0], device=self._device)
@@ -211,15 +214,38 @@ def evaluate(searcher, voc, sentence, max_length=MAX_LENGTH):
     return decode_word
 
 
+def evaluate_input(searcher, voc):
+    while 1:
+        try:
+            input_sentence = input('> ')
+            if input_sentence == 'q' or input_sentence == 'quit':
+                break
+            input_sentence = normalize_string(input_sentence)
+            output_words = evaluate(searcher, voc, input_sentence)
+            output_words[:] = [x for x in output_words if not (x == 'EOS' or x == 'PAD')]
+            print('Bot: ', ''.join(output_words))
+        except KeyError:
+            print("Error: Encountered unknown word.")
+
+
+def evaluate_example(sentence, searcher, voc):
+    print('> ' + sentence)
+    input_sentence = normalize_string(sentence)
+    output_words = evaluate(searcher, voc, input_sentence)
+    output_words[:] = [x for x in output_words if not (x == 'EOS' or x == 'PAD')]
+    print('Bot: ', ''.join(output_words))
+
+
 if __name__ == '__main__':
     import os
     import time
     import re
     import unicodedata
     import numpy as np
+
     os.environ['CUDA_VISIBLE_DEVICES'] = '7'
-    print('-'*15, 'Start', time.ctime(), '-'*15, '\n')
+    print('-' * 15, 'Start', time.ctime(), '-' * 15, '\n')
 
     device = torch.device("cpu")
 
-    print('%s%s %s %s %s' % ('\n', '-'*16, 'End', time.ctime(), '-'*16))
+    print('%s%s %s %s %s' % ('\n', '-' * 16, 'End', time.ctime(), '-' * 16))
