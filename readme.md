@@ -1,20 +1,21 @@
 ## introduction
-pytorch入门
+pytorch入门代码保存。
+
 
 ## equipment
 Windows10 x64
 
 pycharm
 
-CUDA 9.0
 
-cudnn-9.0-windows10-x64-v7.2.1.38
 
 ## Python requirement
-torch==1.0.0
+安装语句，torch1.0.0的安装如下
+```shell
+conda install pytorch-cpu==1.0.0 torchvision-cpu==0.2.1 cpuonly -c pytorch
+```
+但是对于初学者，一般是用pycharm进行，且刚需代码智能补全，此处强烈建议torch=1.11（python=3.7）
+```shell
+ conda install pytorch==1.11.0 torchvision==0.12.0 torchaudio==0.11.0 cpuonly -c pytorch
+```
 
-torchvision
-
-numpy
-
-matplotlib
