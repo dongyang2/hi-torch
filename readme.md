@@ -18,4 +18,9 @@ conda install pytorch-cpu==1.0.0 torchvision-cpu==0.2.1 cpuonly -c pytorch
 ```shell
  conda install pytorch==1.11.0 torchvision==0.12.0 torchaudio==0.11.0 cpuonly -c pytorch
 ```
-
+其余安装
+```shell
+pip install matplotlib
+pip install pandas
+pip install scikit-image, scikit-learn
+```
