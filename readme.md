@@ -1,7 +1,7 @@
 ## introduction
 pytorch入门代码保存。
 
-（于2025-2-4不再受支持，将本项目合并于https://github.com/dongyang2/hello-world/machine_learning中。）
+（于2025-2-4不再受支持，将本项目合并于 https://github.com/dongyang2/hello-world/machine_learning  中。）
 
 
 ## equipment
